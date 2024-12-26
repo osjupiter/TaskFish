@@ -1,10 +1,5 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 use chrono::{DateTime, Utc};
+use rand::distributions::{Distribution, Standard};
 use serde::{Deserialize, Serialize};
 
 // src-tauri/src/main.rs
@@ -79,24 +74,25 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-
-
 #[tauri::command]
 async fn add_quest(
     title: String,
     description: String,
     reward_points: i32,
-    reward_resources: Resources,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut player = state.player.lock().map_err(|_| "Failed to lock player state")?;
     
+    let normal = rand::distributions::Uniform::new_inclusive(1, 100);//rand::distributions::Standard::new_inclusive(100.0, 25.0).unwrap();
+    let mut rng = rand::thread_rng();
+    let gold = normal.sample(&mut rng) as i32;
+     
     let quest = Quest {
         id: Uuid::new_v4().to_string(),
         title,
         description,
         reward_points,
-        reward_resources,
+        reward_resources: Resources {gold, experience: 0},
         completed: false,
         created_at: Utc::now(),
     };
@@ -104,6 +100,7 @@ async fn add_quest(
     player.active_quests.push(quest);
     Ok(())
 }
+
 
 #[tauri::command]
 async fn complete_quest(

@@ -29,11 +29,6 @@ interface PlayerState {
 interface NewQuest {
     title: string,
     description: string,
-    reward_points: number,
-    reward_resources: {
-        gold: number,
-        experience: number,
-    }
 }
 
 // AddQuestButton コンポーネント
@@ -64,11 +59,6 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
     const [newQuest, setNewQuest] = useState<NewQuest>({
         title: '',
         description: '',
-        reward_points: 0,
-        reward_resources: {
-            gold: 0,
-            experience: 0,
-        }
     });
 
   const modalRef = useRef<HTMLDivElement>(null);
@@ -97,11 +87,6 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
         setNewQuest({
           title: '',
           description: '',
-          reward_points: 0,
-          reward_resources: {
-            gold: 0,
-            experience: 0,
-          }
         });
       onClose()
     };
@@ -109,9 +94,9 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
 
     if (!showForm) return null;
 
-    return (
+     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative">
+            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative w-3/4">
                 <form onSubmit={handleAddQuest} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Quest Title</label>
@@ -132,52 +117,6 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
                             className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                             required
                         />
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Gold</label>
-                            <input
-                                type="number"
-                                value={newQuest.reward_resources.gold}
-                                onChange={(e) => setNewQuest({
-                                    ...newQuest,
-                                    reward_resources: {
-                                        ...newQuest.reward_resources,
-                                        gold: parseInt(e.target.value) || 0
-                                    }
-                                })}
-                                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Experience</label>
-                            <input
-                                type="number"
-                                value={newQuest.reward_resources.experience}
-                                onChange={(e) => setNewQuest({
-                                    ...newQuest,
-                                    reward_resources: {
-                                        ...newQuest.reward_resources,
-                                        experience: parseInt(e.target.value) || 0
-                                    }
-                                })}
-                                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                min="0"
-                            />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Points</label>
-                          <input
-                            type="number"
-                            value={newQuest.reward_points}
-                            onChange={(e) => setNewQuest({...newQuest, reward_points: parseInt(e.target.value) || 0})}
-                            className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            min="0"
-                          />
-                        </div>
                     </div>
 
                     <div className="flex justify-end gap-2">
@@ -248,7 +187,6 @@ const QuestManager = () => {
           title: newQuest.title,
           description: newQuest.description,
           rewardPoints: newQuest.reward_points,
-          rewardResources: newQuest.reward_resources
         });
 
     } catch (error) {
