@@ -34,8 +34,8 @@ const QuestManager = () => {
         if (!playerState) return 0;
         let experienceGain = 0
         if (playerState.upgrade_times) {
-            playerState.upgrade_times.forEach((upgradeTime ) => {
-                const upgradeElapsedSeconds = (elapsedSeconds-upgradeTime.from_seconds) 
+            playerState.upgrade_times.forEach((upgradeTime) => {
+                const upgradeElapsedSeconds = (elapsedSeconds - upgradeTime.from_seconds)
                 experienceGain += upgradeElapsedSeconds * upgradeTime.power;
             });
         }
@@ -47,7 +47,7 @@ const QuestManager = () => {
         if (state) {
             const now = Date.now();
             const from = new Date(state.start_at);
-            const elapsedSeconds = (now - from.getTime()) / 1000;
+            const elapsedSeconds =  Math.floor((now - from.getTime()) / 1000);
             const updatedExperience = calculateExperience(state, elapsedSeconds);
             setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience }, last_update: now });
         }
@@ -141,8 +141,29 @@ const QuestManager = () => {
 
     return (
         <div className="p-0  bg-gray-900 min-h-screen text-white">
+
+            {/* Quest Actions と Form */}
+            <div className=" bg-black  p-4 h-20">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
+                    <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
+                </div>
+            </div>
+            <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest} />
+            <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
+            {/* Active Quests */}
+
+            <div className=' p-4 overflow-auto [height:calc(100vh-15rem)] overflow-y-auto'>
+                {playerState &&
+                    <QuestList
+                        activeQuests={playerState.active_quests}
+                        onCompleteQuest={handleCompleteQuest}
+                        onEditQuest={handleEditQuest}
+                        onReorderQuests={handleReorderQuests}
+                    />}
+            </div>
             {/* 既存のPlayer Stats部分 */}
-            <div className="fixed h-40 bottom-1 left-4 right-4 bg-black rounded-lg p-4 shadow-lg z-50">
+            <div className=" h-40 bottom-1 left-4 right-4 bg-black rounded-lg p-4 shadow-lg ">
                 <div className="mb-4">
                     <h2 className="text-xl font-bold text-blue-400">Level {playerState.level} Adventurer</h2>
                     <div className="mt-2">
@@ -164,39 +185,18 @@ const QuestManager = () => {
                         <div className="text-yellow-500">💰</div>
                         <span>{playerState.resources.gold} Gold</span>
                         {playerState.resources.gold >= 200 && (
-                            <button className='bg-amber-400 text-black' onClick={handleUpgrade}>
-                                Upgrade🔨
+                            <button className='bg-amber-400 text-black px-2 py-1 text-sm rounded flex items-center space-x-2 hover:bg-gray-600' onClick={handleUpgrade}>
+                                <span>Upgrade🔨(Consume 200)</span>
                             </button>
-                        )}
+                        )
+                        }
                     </div>
                     <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
                         <div className="text-green-500">⚡</div>
-                        <span>{playerState.resources.experience.toFixed(1)} Exp</span>
+                        <span>{playerState.resources.experience.toFixed(1)} Exp( {playerState?.points_per_second.toFixed(1)} points/s )</span>
                     </div>
                 </div>
             </div>
-
-            {/* Quest Actions と Form */}
-            <div className="sticky top-0 left-4 right-4  bg-black  p-4 z-30 h-20">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
-                    <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
-                </div>
-            </div>
-            <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest} />
-            <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
-            {/* Active Quests */}
-            {playerState && (
-                <div className='mt-4 p-4'>
-                    <QuestList
-                        activeQuests={playerState.active_quests}
-                        onCompleteQuest={handleCompleteQuest}
-                        onEditQuest={handleEditQuest}
-                        onReorderQuests={handleReorderQuests}
-                    />
-
-                </div>
-            )}
         </div>
     );
 };

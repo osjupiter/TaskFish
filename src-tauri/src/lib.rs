@@ -3,7 +3,6 @@ use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 
 // src-tauri/src/main.rs
-use log::info;
 use std::sync::Mutex;
 use tauri::State;
 use uuid::Uuid;
@@ -132,9 +131,7 @@ async fn complete_quest(quest_id: String, state: State<'_, AppState>) -> Result<
         quest.completed = true;
 
         // Add rewards
-        player.points += quest.reward_points;
         player.resources.gold += quest.reward_resources.gold;
-        player.resources.experience += quest.reward_resources.experience;
 
         // Level up check
         player.level = (player.resources.experience as f32 / 1000.0).floor() as i32 + 1;
@@ -157,7 +154,6 @@ async fn reorder_quests(quest_ids: Vec<String>, state: State<'_, AppState>) -> R
             new_quests.push(quest.clone());
         }
     }
-    info!("reorder: {:?}", new_quests);
 
     player.active_quests = new_quests;
 
@@ -196,10 +192,6 @@ async fn upgrade_points_per_second(state: State<'_, AppState>) -> Result<(), Str
             from_seconds: diffseconds,
             power: 5,
         });
-        info!(
-            "Upgraded points per second. Current points_per_second: {}",
-            player.points_per_second
-        );
     }
     player.last_update = Utc::now();
 
