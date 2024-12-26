@@ -4,4 +4,3 @@
 fn main() {
     taskfish_lib::run()
 }
-

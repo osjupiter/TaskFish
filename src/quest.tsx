@@ -26,7 +26,6 @@ const AddQuestButton: React.FC<AddQuestButtonProps> = ({ showForm, onToggleForm 
 const QuestManager = () => {
     const [playerState, setPlayerState] = useState<PlayerState | null>(null);
     const [showForm, setShowForm] = useState(false);
-    const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
     const [showEditModal, setShowEditModal] = useState(false);
     const [questToEdit, setQuestToEdit] = useState<Quest | null>(null);
 
@@ -47,14 +46,13 @@ const QuestManager = () => {
                 const elapsedSeconds = (now - from.getTime()) / 1000;
                 const updatedExperience = calculateExperience(state, elapsedSeconds);
                 setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience } });
-                setLastUpdateTime(now);
             }
         };
 
         fetchPlayerState();
         const interval = setInterval(fetchPlayerState, 1000);
         return () => clearInterval(interval);
-    }, [lastUpdateTime]);
+    }, []);
 
 
 
@@ -106,6 +104,7 @@ const QuestManager = () => {
     };
     
      const handleReorderQuests = async (updatedQuests:Quest[]) => {
+        console.log(updatedQuests);
           if(!playerState) return;
             try {
                 await invoke('reorder_quests', { questIds: updatedQuests.map(quest => quest.id) });
