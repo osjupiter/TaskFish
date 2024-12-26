@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from "@tauri-apps/api/core";
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+
 
 interface Quest {
-    id: String,
-    title: String,
-    description: String,
+    id: string,
+    title: string,
+    description: string,
     reward_points: number,
     reward_resources: {
         gold: number,
@@ -28,6 +30,11 @@ interface PlayerState {
 
 interface NewQuest {
     title: string,
+    description: string,
+}
+interface UpdateQuest {
+    id:string,
+    title:string,
     description: string,
 }
 
@@ -96,7 +103,7 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
 
      return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative w-3/4">
+            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative max-w-xl">
                 <form onSubmit={handleAddQuest} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Quest Title</label>
@@ -140,12 +147,159 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
     );
 };
 
+interface QuestItemProps {
+  quest: Quest;
+  index: number;
+  onCompleteQuest: (questId: String) => void;
+    onEditQuest: (quest: Quest) => void;
+}
+
+const QuestItem: React.FC<QuestItemProps> = ({ quest, index, onCompleteQuest, onEditQuest }) => {
+  return (
+      <Draggable draggableId={quest.id} index={index}>
+          {(provided) => (
+              <div
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                  className="bg-gray-700 p-4 rounded-lg border border-gray-600 hover:border-blue-500 transition-colors flex items-center justify-between"
+              >
+                  <div>
+                      <h3 className="font-bold text-lg">{quest.title}</h3>
+                      <p className="text-gray-300 mt-1">{quest.description}</p>
+                      <div className="mt-2 flex flex-wrap gap-4 text-gray-300">
+                          <span>Rewards:</span>
+                          <span>+{quest.reward_resources.gold} Gold</span>
+                          <span>+{quest.reward_resources.experience} XP</span>
+                      </div>
+                  </div>
+                  <div className="flex gap-2">
+                        <button
+                            onClick={() => onEditQuest(quest)}
+                            className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                        >
+                            Edit
+                        </button>
+                      <button
+                          onClick={() => onCompleteQuest(quest.id)}
+                          className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                      >
+                          Complete
+                      </button>
+                    </div>
+              </div>
+          )}
+      </Draggable>
+  );
+};
+
+
+// EditQuestModal コンポーネント
+interface EditQuestModalProps {
+  showEditModal: boolean;
+  onCloseEditModal: () => void;
+  onUpdateQuest: (updatedQuest: UpdateQuest) => void;
+  quest: Quest | null;
+}
+const EditQuestModal: React.FC<EditQuestModalProps> = ({showEditModal, onCloseEditModal, onUpdateQuest, quest})=>{
+    const [updatedQuest, setUpdatedQuest] = useState<UpdateQuest>({
+        id: "",
+        title: '',
+        description: '',
+    });
+    
+  useEffect(()=>{
+    if(quest){
+       setUpdatedQuest({
+            id: quest.id,
+            title: quest.title,
+            description: quest.description,
+        })
+    }
+  }, [quest])
+    
+    const handleUpdateQuest = async (e:React.FormEvent) => {
+        e.preventDefault();
+       onUpdateQuest(updatedQuest);
+        onCloseEditModal();
+    };
+  
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+                onCloseEditModal();
+            }
+        };
+
+        if (showEditModal) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showEditModal, onCloseEditModal]);
+
+    if (!showEditModal || !quest) return null;
+  
+      return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative max-w-xl">
+                   <form onSubmit={handleUpdateQuest} className="space-y-4">
+                       <div>
+                           <label className="block text-sm font-medium mb-1">Quest Title</label>
+                           <input
+                               type="text"
+                               value={updatedQuest.title}
+                               onChange={(e) => setUpdatedQuest({...updatedQuest, title: e.target.value})}
+                               className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               required
+                           />
+                       </div>
+
+                       <div>
+                           <label className="block text-sm font-medium mb-1">Description</label>
+                           <textarea
+                               value={updatedQuest.description}
+                               onChange={(e) => setUpdatedQuest({...updatedQuest, description: e.target.value})}
+                               className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                               required
+                           />
+                       </div>
+
+                       <div className="flex justify-end gap-2">
+                           <button
+                               type="button"
+                               onClick={onCloseEditModal}
+                               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                           >
+                               Cancel
+                           </button>
+                           <button
+                               type="submit"
+                               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                           >
+                               Update Quest
+                           </button>
+                       </div>
+                   </form>
+              </div>
+          </div>
+      );
+  
+};
+
 
 const QuestManager = () => {
-  const [playerState, setPlayerState] = useState<PlayerState|null>(null);
-  const [elapsed, setElapsed] = useState(0);
+  const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [showForm, setShowForm] = useState(false);
-    const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [questToEdit, setQuestToEdit] = useState<Quest | null>(null);
 
 
   const calculateExperience = (playerState: PlayerState, elapsedSeconds: number): number => {
@@ -173,12 +327,6 @@ const QuestManager = () => {
     return () => clearInterval(interval);
   }, [lastUpdateTime]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsed(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
 
   const handleAddQuest = async (newQuest:NewQuest) => {
@@ -186,7 +334,6 @@ const QuestManager = () => {
         await invoke('add_quest', {
           title: newQuest.title,
           description: newQuest.description,
-          rewardPoints: newQuest.reward_points,
         });
 
     } catch (error) {
@@ -201,6 +348,57 @@ const QuestManager = () => {
     const handleCloseForm = () => {
         setShowForm(false);
     }
+    
+    const handleCompleteQuest = async (questId: String) => {
+        try{
+            await invoke('complete_quest', {questId});
+        } catch (error) {
+            console.error('Failed to complete quest:', error);
+        }
+    };
+  
+    const handleEditQuest = (quest: Quest) => {
+        setQuestToEdit(quest);
+        setShowEditModal(true);
+    };
+  
+    const handleCloseEditModal = () => {
+        setShowEditModal(false);
+      setQuestToEdit(null)
+    };
+  
+    const handleUpdateQuest = async (updatedQuest:UpdateQuest) => {
+      try{
+          await invoke('update_quest', {questId:updatedQuest.id, title:updatedQuest.title, description: updatedQuest.description});
+          
+      } catch (error){
+            console.error('Failed to update quest:', error);
+      }
+    };
+
+  const onDragEnd = async (result: DropResult) => {
+      if (!result.destination) {
+          return;
+      }
+
+      const sourceIndex = result.source.index;
+      const destinationIndex = result.destination.index;
+
+      if (sourceIndex === destinationIndex) {
+          return;
+      }
+    
+    if(playerState){
+      const updatedQuests = Array.from(playerState.active_quests);
+      const [removed] = updatedQuests.splice(sourceIndex, 1);
+      updatedQuests.splice(destinationIndex, 0, removed);
+       try {
+                await invoke('reorder_quests', { questIds: updatedQuests.map(quest=>quest.id) });
+            } catch (error) {
+                console.error('Failed to reorder quests:', error);
+            }
+    }
+  };
 
   if (!playerState) return null;
 
@@ -245,31 +443,27 @@ const QuestManager = () => {
          <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
       </div>
         <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest}/>
-
+        <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
       {/* Active Quests */}
-      <div className="space-y-4">
-        {playerState.active_quests.map(quest => (
-          <div 
-            key={quest.id} 
-            className="bg-gray-700 p-4 rounded-lg border border-gray-600 hover:border-blue-500 transition-colors"
-          >
-            <h3 className="font-bold text-lg">{quest.title}</h3>
-            <p className="text-gray-300 mt-1">{quest.description}</p>
-            <div className="mt-2 flex flex-wrap gap-4 text-gray-300">
-              <span>Rewards:</span>
-              <span>+{quest.reward_resources.gold} Gold</span>
-              <span>+{quest.reward_resources.experience} XP</span>
-            </div>
-            <button
-              onClick={() => invoke('complete_quest', { questId: quest.id })}
-              className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-            >
-              Complete Quest
-            </button>
-          </div>
-        ))}
-      </div>
-
+       <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="active-quests">
+              {(provided) => (
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                    {playerState.active_quests.map((quest, index) => (
+                        <QuestItem
+                           key={quest.id}
+                           quest={quest}
+                           index={index}
+                           onCompleteQuest={handleCompleteQuest}
+                           onEditQuest={handleEditQuest}
+                        />
+                    ))}
+                      {provided.placeholder}
+                  </div>
+              )}
+          </Droppable>
+      </DragDropContext>
+     
       {/* Points Per Second Indicator */}
       <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-full shadow-lg">
         +{playerState.points_per_second.toFixed(1)} points/s

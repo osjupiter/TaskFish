@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use rand::distributions::{Distribution, Standard};
+use rand::distributions::{Distribution};
 use serde::{Deserialize, Serialize};
 
 // src-tauri/src/main.rs
@@ -69,6 +69,8 @@ pub fn run() {
             get_player_state,
             add_quest,
             complete_quest,
+            reorder_quests,
+            update_quest
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -78,12 +80,11 @@ pub fn run() {
 async fn add_quest(
     title: String,
     description: String,
-    reward_points: i32,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut player = state.player.lock().map_err(|_| "Failed to lock player state")?;
     
-    let normal = rand::distributions::Uniform::new_inclusive(1, 100);//rand::distributions::Standard::new_inclusive(100.0, 25.0).unwrap();
+     let normal = rand::distributions::Uniform::new(60, 120);
     let mut rng = rand::thread_rng();
     let gold = normal.sample(&mut rng) as i32;
      
@@ -91,7 +92,7 @@ async fn add_quest(
         id: Uuid::new_v4().to_string(),
         title,
         description,
-        reward_points,
+        reward_points: 10,
         reward_resources: Resources {gold, experience: 0},
         completed: false,
         created_at: Utc::now(),
@@ -100,7 +101,6 @@ async fn add_quest(
     player.active_quests.push(quest);
     Ok(())
 }
-
 
 #[tauri::command]
 async fn complete_quest(
@@ -124,5 +124,37 @@ async fn complete_quest(
         player.completed_quests.push(quest);
     }
     
+    Ok(())
+}
+
+
+#[tauri::command]
+async fn reorder_quests(
+    quest_ids: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut player = state.player.lock().map_err(|_| "Failed to lock player state")?;
+    let mut new_quests = Vec::new();
+    for id in quest_ids{
+      if let Some(quest) = player.active_quests.iter().find(|q| q.id == id) {
+            new_quests.push(quest.clone());
+        }
+    }
+    player.active_quests = new_quests;
+    
+    Ok(())
+}
+#[tauri::command]
+async fn update_quest(
+    quest_id: String,
+    title: String,
+    description: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut player = state.player.lock().map_err(|_| "Failed to lock player state")?;
+      if let Some(quest) = player.active_quests.iter_mut().find(|q| q.id == quest_id) {
+            quest.title = title;
+            quest.description = description;
+        }
     Ok(())
 }
