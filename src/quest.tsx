@@ -57,6 +57,8 @@ const QuestManager = () => {
 
 
     const handleAddQuest = async (newQuest: NewQuest) => {
+        const tmp=playerState?.active_quests??[];
+        tmp.push({id:Math.random().toString(), title:newQuest.title, description:newQuest.description, reward_points:0, reward_resources:{gold:0, experience:0}, completed:false, created_at:new Date()});
         try {
             await invoke('add_quest', {
                 title: newQuest.title,
@@ -120,9 +122,9 @@ const QuestManager = () => {
     const experienceProgress = (playerState.resources.experience % experienceToNextLevel) / experienceToNextLevel * 100;
 
     return (
-        <div className="p-4 space-y-4 bg-gray-900 min-h-screen text-white">
+        <div className="p-0  bg-gray-900 min-h-screen text-white">
             {/* 既存のPlayer Stats部分 */}
-            <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
+            <div className="fixed h-40 bottom-1 left-4 right-4 bg-black rounded-lg p-4 shadow-lg z-50">
                 <div className="mb-4">
                     <h2 className="text-xl font-bold text-blue-400">Level {playerState.level} Adventurer</h2>
                     <div className="mt-2">
@@ -146,32 +148,32 @@ const QuestManager = () => {
                     </div>
                     <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
                         <div className="text-green-500">⚡</div>
-                        <span>{playerState.resources.experience} Exp</span>
+                        <span>{playerState.resources.experience.toFixed(0)} Exp</span>
                     </div>
                 </div>
             </div>
 
             {/* Quest Actions と Form */}
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
-                <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
-            </div>
+            <div className="sticky top-0 left-4 right-4  bg-black  p-4 z-30 h-20">
+                 <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
+                    <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
+                 </div>
+           </div>
             <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest} />
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
             {/* Active Quests */}
             {playerState && (
-                 <QuestList
+                 <div className='mt-4 p-4'>
+                    <QuestList
                         activeQuests={playerState.active_quests}
                         onCompleteQuest={handleCompleteQuest}
                         onEditQuest={handleEditQuest}
                         onReorderQuests={handleReorderQuests}
                     />
+                    <div className="h-40"></div>
+                </div>
             )}
-
-            {/* Points Per Second Indicator */}
-            <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-full shadow-lg">
-                +{playerState.points_per_second.toFixed(1)} points/s
-            </div>
         </div>
     );
 };

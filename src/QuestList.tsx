@@ -47,39 +47,42 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
     return (
         <div className="space-y-4">
             {activeQuests.map((quest, index) => (
-                <div
-                    key={quest.id}
-                    draggable={true}
-                    onDragStart={(e) => handleDragStart(e, quest)}
-                    onDragEnter={(e) => handleDragOver(e, quest)}
-                    onDrop={(e) => handleDrop(e, quest)}
-                    onDragEnd={handleDragEnd}
-                    className={`bg-gray-700 p-4 rounded-lg border border-gray-600 hover:border-blue-500 transition-colors flex items-center justify-between ${dragOverItemId === quest.id ? 'border-2 border-green-500' : ''} ${draggedItem?.id === quest.id ? 'border-2 border-red-500' : ''}`}
-                >
-                    <div>
-                        <h3 className="font-bold text-lg">{quest.title}</h3>
-                        <p className="text-gray-300 mt-1">{quest.description}</p>
-                        <div className="mt-2 flex flex-wrap gap-4 text-gray-300">
-                            <span>Rewards:</span>
-                            <span>+{quest.reward_resources.gold} Gold</span>
-                            <span>+{quest.reward_resources.experience} XP</span>
+                <React.Fragment key={quest.id}>
+                    <div
+                        draggable={true}
+                        onDragStart={(e) => handleDragStart(e, quest)}
+                       onDragOver={(e) => handleDragOver(e, quest)}
+                        onDrop={(e) => handleDrop(e, quest)}
+                         onDragEnd={handleDragEnd}
+                        className={`bg-gray-700 p-4 rounded-lg border border-gray-600 hover:border-blue-500 transition-colors flex items-center justify-between
+                            ${draggedItem?.id === quest.id ? 'border-2 border-red-500' : ''}`}
+                    >
+                        <div>
+                            <h3 className="font-bold text-lg">{quest.title}</h3>
+                            <p className="text-gray-300 mt-1">{quest.description}</p>
+                            <div className="mt-2 flex flex-wrap gap-4 text-gray-300">
+                                <span>Rewards:</span>
+                                <span>+{quest.reward_resources.gold} Gold</span>
+                                <span>+{quest.reward_resources.experience} XP</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => onEditQuest(quest)}
+                                className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
+                            >
+                                Edit
+                            </button>
+                            <button
+                                onClick={() => onCompleteQuest(quest.id)}
+                                className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            >
+                                Complete
+                            </button>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onEditQuest(quest)}
-                            className="px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
-                        >
-                            Edit
-                        </button>
-                        <button
-                            onClick={() => onCompleteQuest(quest.id)}
-                            className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                        >
-                            Complete
-                        </button>
-                    </div>
-                </div>
+                   {dragOverItemId === quest.id && (<hr className="border-b-2 border-green-500"/>)}
+                </React.Fragment>
             ))}
         </div>
     );

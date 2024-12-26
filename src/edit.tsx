@@ -52,7 +52,7 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
 
      return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative max-w-xl">
+            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative w-3/4">
                 <form onSubmit={handleAddQuest} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Quest Title</label>
@@ -152,7 +152,7 @@ const EditQuestModal: React.FC<EditQuestModalProps> = ({showEditModal, onCloseEd
   
       return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative max-w-xl">
+              <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative max-w-xl w-3/4">
                    <form onSubmit={handleUpdateQuest} className="space-y-4">
                        <div>
                            <label className="block text-sm font-medium mb-1">Quest Title</label>
