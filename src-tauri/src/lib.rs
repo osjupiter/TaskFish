@@ -27,7 +27,6 @@ struct Quest {
 struct Resources {
     gold: i32,
     experience: i32,
-    energy: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize,Clone)]
@@ -61,7 +60,6 @@ pub fn run() {
         resources: Resources {
             gold: 0,
             experience: 0,
-            energy: 100,
         },
         active_quests: Vec::new(),
         completed_quests: Vec::new(),
@@ -122,13 +120,9 @@ async fn complete_quest(
         player.points += quest.reward_points;
         player.resources.gold += quest.reward_resources.gold;
         player.resources.experience += quest.reward_resources.experience;
-        player.resources.energy += quest.reward_resources.energy;
         
         // Level up check
         player.level = (player.resources.experience as f32 / 1000.0).floor() as i32 + 1;
-        
-        // Increase points per second based on level
-        player.points_per_second = player.level as f32 * 0.1;
         
         player.completed_quests.push(quest);
     }

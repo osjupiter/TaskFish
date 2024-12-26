@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from "@tauri-apps/api/core";
 
 interface Quest {
@@ -9,7 +9,6 @@ interface Quest {
     reward_resources: {
         gold: number,
         experience: number,
-        energy: number,
     },
     completed: boolean,
     created_at: any,
@@ -17,16 +16,14 @@ interface Quest {
 
 interface PlayerState {
     level: number,
-    points: number,
     points_per_second: number,
     resources: {
         gold: number,
         experience: number,
-        energy: number,
     },
+      start_at: any,
     active_quests: Quest[],
     completed_quests: Quest[],
-    start_at: string
 }
 
 interface NewQuest {
@@ -36,24 +33,180 @@ interface NewQuest {
     reward_resources: {
         gold: number,
         experience: number,
-        energy: number,
     }
 }
+
+// AddQuestButton コンポーネント
+interface AddQuestButtonProps {
+    showForm: boolean;
+    onToggleForm: () => void;
+}
+
+const AddQuestButton: React.FC<AddQuestButtonProps> = ({ showForm, onToggleForm }) => {
+  return (
+        <button
+          onClick={onToggleForm}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          {showForm ? 'Add New Quest' : 'Add New Quest'}
+        </button>
+  );
+};
+
+// NewQuestForm コンポーネント (モーダルとして)
+interface NewQuestFormProps {
+    showForm: boolean;
+    onClose: () => void;
+    onAddQuest: (newQuest: NewQuest) => void;
+}
+
+const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQuest }) => {
+    const [newQuest, setNewQuest] = useState<NewQuest>({
+        title: '',
+        description: '',
+        reward_points: 0,
+        reward_resources: {
+            gold: 0,
+            experience: 0,
+        }
+    });
+
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    if (showForm) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showForm, onClose]);
+
+  const handleAddQuest = async (e: React.FormEvent) => {
+        e.preventDefault();
+        onAddQuest(newQuest);
+        setNewQuest({
+          title: '',
+          description: '',
+          reward_points: 0,
+          reward_resources: {
+            gold: 0,
+            experience: 0,
+          }
+        });
+      onClose()
+    };
+
+
+    if (!showForm) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div ref={modalRef} className="bg-gray-800 rounded-lg p-4 shadow-lg relative">
+                <form onSubmit={handleAddQuest} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Quest Title</label>
+                        <input
+                            type="text"
+                            value={newQuest.title}
+                            onChange={(e) => setNewQuest({...newQuest, title: e.target.value})}
+                            className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Description</label>
+                        <textarea
+                            value={newQuest.description}
+                            onChange={(e) => setNewQuest({...newQuest, description: e.target.value})}
+                            className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Gold</label>
+                            <input
+                                type="number"
+                                value={newQuest.reward_resources.gold}
+                                onChange={(e) => setNewQuest({
+                                    ...newQuest,
+                                    reward_resources: {
+                                        ...newQuest.reward_resources,
+                                        gold: parseInt(e.target.value) || 0
+                                    }
+                                })}
+                                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Experience</label>
+                            <input
+                                type="number"
+                                value={newQuest.reward_resources.experience}
+                                onChange={(e) => setNewQuest({
+                                    ...newQuest,
+                                    reward_resources: {
+                                        ...newQuest.reward_resources,
+                                        experience: parseInt(e.target.value) || 0
+                                    }
+                                })}
+                                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                min="0"
+                            />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Points</label>
+                          <input
+                            type="number"
+                            value={newQuest.reward_points}
+                            onChange={(e) => setNewQuest({...newQuest, reward_points: parseInt(e.target.value) || 0})}
+                            className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            min="0"
+                          />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        >
+                            Create Quest
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 const QuestManager = () => {
   const [playerState, setPlayerState] = useState<PlayerState|null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showForm, setShowForm] = useState(false);
-  const [newQuest, setNewQuest] = useState<NewQuest>({
-    title: '',
-    description: '',
-    reward_points: 0,
-    reward_resources: {
-      gold: 0,
-      experience: 0,
-      energy: 0
-    }
-  });
+    const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
 
 
   const calculateExperience = (playerState: PlayerState, elapsedSeconds: number): number => {
@@ -72,13 +225,14 @@ const QuestManager = () => {
         const elapsedSeconds = (now - from.getTime()) / 1000;
         const updatedExperience = calculateExperience(state, elapsedSeconds);
         setPlayerState({...state, resources: { ...state.resources, experience: updatedExperience }});
+          setLastUpdateTime(now);
       }
     };
 
     fetchPlayerState();
     const interval = setInterval(fetchPlayerState, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [lastUpdateTime]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -88,30 +242,27 @@ const QuestManager = () => {
   }, []);
 
 
-  const handleAddQuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await invoke('add_quest', {
-        title: newQuest.title,
-        description: newQuest.description,
-        rewardPoints: newQuest.reward_points,
-        rewardResources: newQuest.reward_resources
-      });
-      setNewQuest({
-        title: '',
-        description: '',
-        reward_points: 0,
-        reward_resources: {
-          gold: 0,
-          experience: 0,
-          energy: 0
-        }
-      });
-      setShowForm(false);
+  const handleAddQuest = async (newQuest:NewQuest) => {
+      try {
+        await invoke('add_quest', {
+          title: newQuest.title,
+          description: newQuest.description,
+          rewardPoints: newQuest.reward_points,
+          rewardResources: newQuest.reward_resources
+        });
+
     } catch (error) {
       console.error('Failed to add quest:', error);
     }
   };
+
+    const handleToggleForm = () => {
+        setShowForm(!showForm);
+    }
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+    }
 
   if (!playerState) return null;
 
@@ -138,18 +289,14 @@ const QuestManager = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
             <div className="text-yellow-500">💰</div>
             <span>{playerState.resources.gold} Gold</span>
           </div>
           <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
-            <div className="text-blue-500">⚔️</div>
-            <span>{playerState.points} Points</span>
-          </div>
-          <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
             <div className="text-green-500">⚡</div>
-            <span>{playerState.resources.energy} Energy</span>
+            <span>{playerState.resources.experience} Exp</span>
           </div>
         </div>
       </div>
@@ -157,121 +304,9 @@ const QuestManager = () => {
       {/* Quest Actions と Form */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          {showForm ? 'Cancel' : 'Add New Quest'}
-        </button>
+         <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
       </div>
-
-      {/* New Quest Form */}
-      {showForm && (
-        <div className="bg-gray-800 rounded-lg p-4 shadow-lg">
-          <form onSubmit={handleAddQuest} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Quest Title</label>
-              <input
-                type="text"
-                value={newQuest.title}
-                onChange={(e) => setNewQuest({...newQuest, title: e.target.value})}
-                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={newQuest.description}
-                onChange={(e) => setNewQuest({...newQuest, description: e.target.value})}
-                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Points</label>
-                <input
-                  type="number"
-                  value={newQuest.reward_points}
-                  onChange={(e) => setNewQuest({...newQuest, reward_points: parseInt(e.target.value) || 0})}
-                  className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Gold</label>
-                <input
-                  type="number"
-                  value={newQuest.reward_resources.gold}
-                  onChange={(e) => setNewQuest({
-                    ...newQuest,
-                    reward_resources: {
-                      ...newQuest.reward_resources,
-                      gold: parseInt(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Experience</label>
-                <input
-                  type="number"
-                  value={newQuest.reward_resources.experience}
-                  onChange={(e) => setNewQuest({
-                    ...newQuest,
-                    reward_resources: {
-                      ...newQuest.reward_resources,
-                      experience: parseInt(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Energy</label>
-                <input
-                  type="number"
-                  value={newQuest.reward_resources.energy}
-                  onChange={(e) => setNewQuest({
-                    ...newQuest,
-                    reward_resources: {
-                      ...newQuest.reward_resources,
-                      energy: parseInt(e.target.value) || 0
-                    }
-                  })}
-                  className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              >
-                Create Quest
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+        <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest}/>
 
       {/* Active Quests */}
       <div className="space-y-4">
@@ -284,10 +319,8 @@ const QuestManager = () => {
             <p className="text-gray-300 mt-1">{quest.description}</p>
             <div className="mt-2 flex flex-wrap gap-4 text-gray-300">
               <span>Rewards:</span>
-              <span>+{quest.reward_points} Points</span>
               <span>+{quest.reward_resources.gold} Gold</span>
               <span>+{quest.reward_resources.experience} XP</span>
-              <span>+{quest.reward_resources.energy} Energy</span>
             </div>
             <button
               onClick={() => invoke('complete_quest', { questId: quest.id })}
