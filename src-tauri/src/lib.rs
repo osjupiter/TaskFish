@@ -1,13 +1,11 @@
 use chrono::{DateTime, Utc};
-use rand::distributions::Distribution;
+use rand::distributions::{Distribution, Uniform};
 use serde::{Deserialize, Serialize};
 
 // src-tauri/src/main.rs
-use std::{
-    fmt::{Debug, DebugList},
-    sync::Mutex,
-};
-use tauri::{command, State};
+use log::info;
+use std::sync::Mutex;
+use tauri::State;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -28,6 +26,12 @@ struct Resources {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+struct Power {
+    from_seconds: i64,
+    power: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct PlayerState {
     level: i32,
     points: i32,
@@ -36,6 +40,8 @@ struct PlayerState {
     active_quests: Vec<Quest>,
     completed_quests: Vec<Quest>,
     start_at: DateTime<Utc>,
+    last_update: DateTime<Utc>,
+    upgrade_times: Vec<Power>,
 }
 
 struct AppState {
@@ -53,30 +59,31 @@ async fn get_player_state(state: State<'_, AppState>) -> Result<PlayerState, Str
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let initial_state = PlayerState {
-        level: 1,
-        points: 0,
-        points_per_second: 1.0,
-        resources: Resources {
-            gold: 0,
-            experience: 0,
-        },
-        active_quests: Vec::new(),
-        completed_quests: Vec::new(),
-        start_at: Utc::now(),
-    };
-
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().build())
         .manage(AppState {
-            player: Mutex::new(initial_state),
+            player: Mutex::new(PlayerState {
+                level: 1,
+                points: 0,
+                points_per_second: 1.0,
+                resources: Resources {
+                    gold: 0,
+                    experience: 0,
+                },
+                active_quests: Vec::new(),
+                completed_quests: Vec::new(),
+                start_at: Utc::now(),
+                last_update: Utc::now(),
+                upgrade_times: vec![ Power { from_seconds: 0, power: 1 } ],
+            }),
         })
         .invoke_handler(tauri::generate_handler![
             get_player_state,
             add_quest,
             complete_quest,
             reorder_quests,
-            update_quest
+            update_quest,
+            upgrade_points_per_second
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -92,8 +99,7 @@ async fn add_quest(
         .player
         .lock()
         .map_err(|_| "Failed to lock player state")?;
-
-    let normal = rand::distributions::Uniform::new(60, 120);
+    let normal = Uniform::new(60, 120);
     let mut rng = rand::thread_rng();
     let gold = normal.sample(&mut rng) as i32;
 
@@ -151,12 +157,13 @@ async fn reorder_quests(quest_ids: Vec<String>, state: State<'_, AppState>) -> R
             new_quests.push(quest.clone());
         }
     }
-    log::info!("reorder: {:?}", new_quests);
+    info!("reorder: {:?}", new_quests);
 
     player.active_quests = new_quests;
 
     Ok(())
 }
+
 #[tauri::command]
 async fn update_quest(
     quest_id: String,
@@ -172,5 +179,29 @@ async fn update_quest(
         quest.title = title;
         quest.description = description;
     }
+    Ok(())
+}
+
+#[tauri::command]
+async fn upgrade_points_per_second(state: State<'_, AppState>) -> Result<(), String> {
+    let mut player = state
+        .player
+        .lock()
+        .map_err(|_| "Failed to lock player state")?;
+
+    if player.resources.gold >= 200 {
+        player.resources.gold -= 200;
+        let diffseconds = Utc::now().timestamp() - player.start_at.timestamp();
+        player.upgrade_times.push(Power {
+            from_seconds: diffseconds,
+            power: 5,
+        });
+        info!(
+            "Upgraded points per second. Current points_per_second: {}",
+            player.points_per_second
+        );
+    }
+    player.last_update = Utc::now();
+
     Ok(())
 }

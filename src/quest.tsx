@@ -32,23 +32,28 @@ const QuestManager = () => {
 
     const calculateExperience = (playerState: PlayerState, elapsedSeconds: number): number => {
         if (!playerState) return 0;
-        const experienceGain = playerState.points_per_second * elapsedSeconds;
+        let experienceGain = 0
+        if (playerState.upgrade_times) {
+            playerState.upgrade_times.forEach((upgradeTime ) => {
+                const upgradeElapsedSeconds = (elapsedSeconds-upgradeTime.from_seconds) 
+                experienceGain += upgradeElapsedSeconds * upgradeTime.power;
+            });
+        }
         return playerState.resources.experience + experienceGain;
     };
 
+    const fetchPlayerState = async () => {
+        const state: PlayerState = await invoke('get_player_state');
+        if (state) {
+            const now = Date.now();
+            const from = new Date(state.start_at);
+            const elapsedSeconds = (now - from.getTime()) / 1000;
+            const updatedExperience = calculateExperience(state, elapsedSeconds);
+            setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience }, last_update: now });
+        }
+    };
 
     useEffect(() => {
-        const fetchPlayerState = async () => {
-            const state: PlayerState = await invoke('get_player_state');
-            if (state) {
-                const now = Date.now();
-                const from = new Date(state.start_at);
-                const elapsedSeconds = (now - from.getTime()) / 1000;
-                const updatedExperience = calculateExperience(state, elapsedSeconds);
-                setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience } });
-            }
-        };
-
         fetchPlayerState();
         const interval = setInterval(fetchPlayerState, 1000);
         return () => clearInterval(interval);
@@ -57,14 +62,14 @@ const QuestManager = () => {
 
 
     const handleAddQuest = async (newQuest: NewQuest) => {
-        const tmp=playerState?.active_quests??[];
-        tmp.push({id:Math.random().toString(), title:newQuest.title, description:newQuest.description, reward_points:0, reward_resources:{gold:0, experience:0}, completed:false, created_at:new Date()});
+        const tmp = playerState?.active_quests ?? [];
+        tmp.push({ id: Math.random().toString(), title: newQuest.title, description: newQuest.description, reward_points: 0, reward_resources: { gold: 0, experience: 0 }, completed: false, created_at: new Date() });
         try {
             await invoke('add_quest', {
                 title: newQuest.title,
                 description: newQuest.description,
             });
-
+            await fetchPlayerState();
         } catch (error) {
             console.error('Failed to add quest:', error);
         }
@@ -81,6 +86,7 @@ const QuestManager = () => {
     const handleCompleteQuest = async (questId: string) => {
         try {
             await invoke('complete_quest', { questId });
+            await fetchPlayerState();
         } catch (error) {
             console.error('Failed to complete quest:', error);
         }
@@ -99,22 +105,34 @@ const QuestManager = () => {
     const handleUpdateQuest = async (updatedQuest: UpdateQuest) => {
         try {
             await invoke('update_quest', { questId: updatedQuest.id, title: updatedQuest.title, description: updatedQuest.description });
+            await fetchPlayerState();
 
         } catch (error) {
             console.error('Failed to update quest:', error);
         }
     };
-    
-     const handleReorderQuests = async (updatedQuests:Quest[]) => {
+
+    const handleReorderQuests = async (updatedQuests: Quest[]) => {
         console.log(updatedQuests);
-          if(!playerState) return;
-            try {
-                await invoke('reorder_quests', { questIds: updatedQuests.map(quest => quest.id) });
-                setPlayerState({...playerState, active_quests: updatedQuests});
-            } catch (error) {
-                console.error('Failed to reorder quests:', error);
-            }
+        if (!playerState) return;
+        try {
+            await invoke('reorder_quests', { questIds: updatedQuests.map(quest => quest.id) });
+            setPlayerState({ ...playerState, active_quests: updatedQuests });
+        } catch (error) {
+            console.error('Failed to reorder quests:', error);
+        }
     };
+
+    const handleUpgrade = async () => {
+        if (!playerState) return
+        try {
+            await invoke('upgrade_points_per_second');
+            await fetchPlayerState();
+        } catch (error) {
+            console.error('Failed to upgrade points per second', error);
+        }
+
+    }
 
     if (!playerState) return null;
 
@@ -145,33 +163,38 @@ const QuestManager = () => {
                     <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
                         <div className="text-yellow-500">💰</div>
                         <span>{playerState.resources.gold} Gold</span>
+                        {playerState.resources.gold >= 200 && (
+                            <button className='bg-amber-400 text-black' onClick={handleUpgrade}>
+                                Upgrade🔨
+                            </button>
+                        )}
                     </div>
                     <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
                         <div className="text-green-500">⚡</div>
-                        <span>{playerState.resources.experience.toFixed(0)} Exp</span>
+                        <span>{playerState.resources.experience.toFixed(1)} Exp</span>
                     </div>
                 </div>
             </div>
 
             {/* Quest Actions と Form */}
             <div className="sticky top-0 left-4 right-4  bg-black  p-4 z-30 h-20">
-                 <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
                     <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
                     <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
-                 </div>
-           </div>
+                </div>
+            </div>
             <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest} />
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
             {/* Active Quests */}
             {playerState && (
-                 <div className='mt-4 p-4'>
+                <div className='mt-4 p-4'>
                     <QuestList
                         activeQuests={playerState.active_quests}
                         onCompleteQuest={handleCompleteQuest}
                         onEditQuest={handleEditQuest}
                         onReorderQuests={handleReorderQuests}
                     />
-                    <div className="h-40"></div>
+
                 </div>
             )}
         </div>
