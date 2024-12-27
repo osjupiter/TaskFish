@@ -5,6 +5,7 @@ import QuestList from './QuestList';
 import { Quest, PlayerState, NewQuest, UpdateQuest } from './types';
 import {  EditQuestModal } from './edit';
 import NewTaskForm from './newtask';
+import ScrollableContainer from './ScrollableContainer'; // ScrollableContainerをインポート
 
 // AddQuestButton コンポーネント
 interface AddQuestButtonProps {
@@ -230,23 +231,25 @@ const QuestManager = () => {
             {/* Quest Actions と Form */}
             <div className="bg-black p-2 h-14 shadow-md z-10 relative">
                 <div className="flex justify-between items-center h-full">
-                    <h2 className="text-lg font-bold text-blue-400">TaskFish</h2>
+                    <h2 className="text-lg font-bold text-blue-400">🐟TaskFish</h2>
                     <FishingComp onFishSuccess={handleFishingSuccess} />
                     <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
                 </div>
             </div>
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
             {/* Active Quests */}
-
-            <div className="p-4 overflow-auto [height:calc(100vh-15rem)] overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-700">
-                {playerState &&
-                    <QuestList
-                        activeQuests={playerState.active_quests}
-                        onCompleteQuest={handleCompleteQuest}
-                        onEditQuest={handleEditQuest}
-                        onReorderQuests={handleReorderQuests}
-                    />}
-            </div>
+             <ScrollableContainer>
+                  {playerState &&
+     <div className="p-4  bg-gradient-to-b from-gray-900 to-gray-700" style={{ minHeight: 'calc(100vh - 15rem)' }}>
+     <QuestList
+        activeQuests={playerState.active_quests}
+       onCompleteQuest={handleCompleteQuest}
+       onEditQuest={handleEditQuest}
+       onReorderQuests={handleReorderQuests}
+   />
+</div>
+                    }
+            </ScrollableContainer>
 
             <NewTaskForm onAddTask={handleAddTask} />
             {/* 既存のPlayer Stats部分 */}
