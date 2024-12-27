@@ -21,7 +21,6 @@ struct Quest {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Resources {
     gold: i32,
-    experience: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -67,7 +66,6 @@ pub fn run() {
                 points_per_second: 1.0,
                 resources: Resources {
                     gold: 0,
-                    experience: 0,
                 },
                 active_quests: Vec::new(),
                 completed_quests: Vec::new(),
@@ -110,7 +108,6 @@ async fn add_quest(
         reward_points: 10,
         reward_resources: Resources {
             gold,
-            experience: 0,
         },
         completed: false,
         created_at: Utc::now(),
@@ -133,9 +130,8 @@ async fn complete_quest(quest_id: String, state: State<'_, AppState>) -> Result<
 
         // Add rewards
         player.resources.gold += quest.reward_resources.gold;
-
         // Level up check
-        player.level = (player.resources.experience as f32 / 1000.0).floor() as i32 + 1;
+        player.level = (1.0 as f32 / 1000.0).floor() as i32 + 1;
 
         player.completed_quests.push(quest);
     }

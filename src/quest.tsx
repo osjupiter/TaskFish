@@ -3,25 +3,37 @@ import React, { useState, useEffect } from 'react';
 import { invoke } from "@tauri-apps/api/core";
 import QuestList from './QuestList';
 import { Quest, PlayerState, NewQuest, UpdateQuest } from './types';
-import {  EditQuestModal } from './edit';
+import { EditQuestModal } from './edit';
 import NewTaskForm from './newtask';
 import ScrollableContainer from './ScrollableContainer'; // ScrollableContainerをインポート
+import useSound from 'use-sound';
 
-// AddQuestButton コンポーネント
-interface AddQuestButtonProps {
-    showForm: boolean;
-    onToggleForm: () => void;
-}
+const createLevelData = () => {
+    const levelData = [];
+    let requiredExperience = 20;
+    for (let level = 1; level <= 100; level++) {
+        levelData.push({ level, experienceToNextLevel: requiredExperience })
+        requiredExperience = 20 + 100 * Math.pow(2, level);
+    }
+    return levelData;
+};
 
-const AddQuestButton: React.FC<AddQuestButtonProps> = ({ showForm, onToggleForm }) => {
-    return (
-        <button
-            onClick={onToggleForm}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-            {showForm ? 'Add New Quest' : 'Add New Quest'}
-        </button>
-    );
+
+const levelData = createLevelData();
+
+const calculateLevelInfo = (experience: number): { level: number; experienceToNextLevel: number; currentLevelExperience: number } => {
+    let level = 1;
+    let currentLevelExperience = experience;
+
+    for (let i = 0; i < levelData.length; i++) {
+        const { level: currentLevel, experienceToNextLevel } = levelData[i]
+        if (currentLevelExperience < experienceToNextLevel) {
+            return { level: currentLevel, experienceToNextLevel, currentLevelExperience };
+        }
+        currentLevelExperience -= experienceToNextLevel;
+        level = currentLevel + 1;
+    }
+    return { level: 100, experienceToNextLevel: 0, currentLevelExperience: 0 };
 };
 
 
@@ -32,16 +44,28 @@ const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess })
     const [cancelSuccess, setCancelSuccess] = useState<number | null>(null);
     const [cancelFail, setCancelFail] = useState<number | null>(null);
     const [result, setResult] = useState<string | null>(null);
+    const [playFish] = useSound("/fish.mp3", {
+        volume: 1
+    });
+    const [playPaltu] = useSound("/paltu.mp3", {
+        volume: 1
+    });
+    const [playDrop] = useSound("/drop.mp3", {
+        volume: 1
+    });
 
     // 釣り開始時の処理
     const handleStartFishing = () => {
+        playFish()
         setIsFishing(true);
         const randomTime = Math.random() * 6000 + 2000; // 2-8秒のランダムな時間
         const successStartTime = randomTime;
 
         const timeoutId = setTimeout(() => {
+            playDrop()
             setIsSuccessTime(true);
             const failTimer = setTimeout(() => {
+                playPaltu()
                 setResult("💩")
                 resetState();
             }, 500)
@@ -57,9 +81,11 @@ const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess })
             return
         }
         if (isSuccessTime) {
+            playPaltu()
             onFishSuccess();
             setResult("💎")
         } else {
+            playPaltu()
             setResult("💩")
         }
         resetState();
@@ -107,10 +133,13 @@ const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess })
 
 const QuestManager = () => {
     const [playerState, setPlayerState] = useState<PlayerState | null>(null);
-    const [showForm, setShowForm] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [questToEdit, setQuestToEdit] = useState<Quest | null>(null);
-    
+    const [experienceCache, setExperienceCache] = useState<number | null>(null);
+    const [playDone] = useSound("/done.mp3", {
+        volume: 1
+    });
+
     const calculateExperience = (playerState: PlayerState, elapsedSeconds: number): number => {
         if (!playerState) return 0;
         let experienceGain = 0
@@ -120,8 +149,34 @@ const QuestManager = () => {
                 experienceGain += upgradeElapsedSeconds * upgradeTime.power;
             });
         }
-        return playerState.resources.experience + experienceGain;
+        return experienceGain;
     };
+    const calcSpeed = () => {
+        if (!playerState) return 0;
+        let speed = 0
+        if (playerState.upgrade_times) {
+            playerState.upgrade_times.forEach((upgradeTime) => {
+                speed += upgradeTime.power;
+            });
+        }
+        return speed;
+    }
+    const getCurrentExperience = () => {
+        if (!playerState) return 0;
+        if (experienceCache !== null) return experienceCache;
+        return 0
+    }
+    // 10msごとにエクスペリエンスのキャッシュを更新する、増加量は速度を採用する
+    useEffect(() => {
+        const updateExpCache = () => {
+            if (!playerState) return;
+            let currentExp = experienceCache ?? 0;
+            currentExp += calcSpeed() * 10 / 1000;
+            setExperienceCache(currentExp);
+        }
+        const interval = setInterval(updateExpCache, 10);
+        return () => clearInterval(interval);
+    })
 
     const fetchPlayerState = async () => {
         const state: PlayerState = await invoke('get_player_state');
@@ -130,7 +185,8 @@ const QuestManager = () => {
             const from = new Date(state.start_at);
             const elapsedSeconds = Math.floor((now - from.getTime()) / 1000);
             const updatedExperience = calculateExperience(state, elapsedSeconds);
-            setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience }, last_update: now });
+            setPlayerState({ ...state, resources: { ...state.resources }, last_update: now });
+            setExperienceCache(updatedExperience)
         }
     };
 
@@ -152,15 +208,8 @@ const QuestManager = () => {
         }
     };
 
-    const handleToggleForm = () => {
-        setShowForm(!showForm);
-    }
-
-    const handleCloseForm = () => {
-        setShowForm(false);
-    }
-
     const handleCompleteQuest = async (questId: string) => {
+        playDone()
         try {
             await invoke('complete_quest', { questId });
             await fetchPlayerState();
@@ -214,14 +263,16 @@ const QuestManager = () => {
     if (!playerState) return null;
 
     const experienceToNextLevel = 100;
-    const experienceProgress = (playerState.resources.experience % experienceToNextLevel) / experienceToNextLevel * 100;
+
+    const expInfo = calculateLevelInfo(getCurrentExperience());
+    const experienceProgress = (expInfo.currentLevelExperience) / expInfo.experienceToNextLevel * 100;
 
     const handleFishingSuccess = async () => {
         await invoke('success_fish');
         await fetchPlayerState();
     }
 
-      const handleAddTask = async (title: string) => {
+    const handleAddTask = async (title: string) => {
         await handleAddQuest({ title, description: "" });
     };
 
@@ -233,29 +284,28 @@ const QuestManager = () => {
                 <div className="flex justify-between items-center h-full">
                     <h2 className="text-lg font-bold text-blue-400">🐟TaskFish</h2>
                     <FishingComp onFishSuccess={handleFishingSuccess} />
-                    <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
                 </div>
             </div>
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
             {/* Active Quests */}
-             <ScrollableContainer>
-                  {playerState &&
-     <div className="p-4  bg-gradient-to-b from-gray-900 to-gray-700" style={{ minHeight: 'calc(100vh - 15rem)' }}>
-     <QuestList
-        activeQuests={playerState.active_quests}
-       onCompleteQuest={handleCompleteQuest}
-       onEditQuest={handleEditQuest}
-       onReorderQuests={handleReorderQuests}
-   />
-</div>
-                    }
+            <ScrollableContainer>
+                {playerState &&
+                    <div className="p-4  bg-gradient-to-b from-gray-900 to-gray-700" style={{ minHeight: 'calc(100vh - 15rem)' }}>
+                        <QuestList
+                            activeQuests={playerState.active_quests}
+                            onCompleteQuest={handleCompleteQuest}
+                            onEditQuest={handleEditQuest}
+                            onReorderQuests={handleReorderQuests}
+                        />
+                    </div>
+                }
             </ScrollableContainer>
 
             <NewTaskForm onAddTask={handleAddTask} />
             {/* 既存のPlayer Stats部分 */}
-            <div className="h-32 bottom-1 left-4 right-4 bg-black rounded-lg p-3 shadow-lg">
+            <div className="h-32 bottom-1 left-4 right-4 bg-black  p-3 shadow-lg">
                 <div className="flex justify-between items-start gap-4 mb-3">
-                    <h2 className="text-lg font-bold text-blue-400">Level {playerState.level} Adventurer</h2>
+                    <h2 className="text-lg font-bold text-blue-400">Level {expInfo.level} Adventurer</h2>
                     <div className="flex-1 max-w-md">
                         <div className="flex justify-between items-center mb-1">
                             <span className="text-sm">Experience</span>
@@ -263,7 +313,7 @@ const QuestManager = () => {
                         </div>
                         <div className="w-full bg-gray-700 rounded-full h-2">
                             <div
-                                className="bg-purple-500 rounded-full h-2 transition-all duration-300"
+                                className="bg-purple-500 rounded-full h-2 "
                                 style={{ width: `${experienceProgress}%` }}
                             />
                         </div>
@@ -282,7 +332,7 @@ const QuestManager = () => {
                     </div>
                     <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
                         <div className="text-green-500">⚡</div>
-                        <span>{playerState.resources.experience.toFixed(1)} Exp( {playerState?.points_per_second.toFixed(1)} points/s )</span>
+                        <span>{expInfo.currentLevelExperience.toFixed(0)} / {expInfo.experienceToNextLevel} Exp( {calcSpeed()} points/s )</span>
                     </div>
                 </div>
             </div>

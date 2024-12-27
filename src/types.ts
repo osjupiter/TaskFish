@@ -18,7 +18,6 @@ export interface PlayerState {
     points_per_second: number;
     resources: {
         gold: number;
-        experience: number;
     };
     start_at: any;
     last_update: any;
