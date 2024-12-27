@@ -22,6 +22,85 @@ const AddQuestButton: React.FC<AddQuestButtonProps> = ({ showForm, onToggleForm 
 };
 
 
+const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) => {
+    const [disable,setDisable] = useState(false);
+    const [isFishing, setIsFishing] = useState(false);
+    const [isSuccessTime, setIsSuccessTime] = useState(false);
+    const [ cancelSuccess, setCancelSuccess] = useState<number|null>(null);
+    const [ cancelFail,setCancelFail] = useState<number|null>(null);
+    const [ result,setResult] = useState<string|null>(null);
+
+    // 釣り開始時の処理
+    const handleStartFishing = () => {
+        setIsFishing(true);
+        const randomTime = Math.random() * 6000 + 2000; // 2-8秒のランダムな時間
+        const successStartTime = randomTime;
+
+        const timeoutId = setTimeout(() => {
+            setIsSuccessTime(true);
+            const failTimer=setTimeout(() => {
+                setResult("💩")
+                resetState();
+            }, 500)
+            setCancelFail(failTimer)
+        }, successStartTime);
+        setCancelFail(timeoutId)
+    };
+
+    // 釣りの成功/失敗判定
+    const handleFishingSuccess = () => {
+        if (!isFishing) {
+            handleStartFishing()
+            return
+        }
+        if (isSuccessTime) {
+            onFishSuccess();
+            setResult("💎")
+        } else{
+            setResult("💩")
+        }
+        resetState();
+    };
+
+    const resetState = () => {
+        setDisable(true)
+        if(cancelFail!==null)clearTimeout(cancelFail)
+        if(cancelSuccess!==null)clearTimeout(cancelSuccess)
+        setIsSuccessTime(false);
+        setTimeout(() => {
+            setIsFishing(false);
+            setDisable(false)
+            setResult(null)
+        }, 2000)
+    }
+
+
+    let label = <span>🎣</span>
+    if (isFishing) {
+        label = <span>🐟</span>
+    }
+    if(result!==null){
+        label = <span>{result}</span>
+    }
+    let buttonstyle = {
+        filter: isSuccessTime ? "brightness(1.5)" : "brightness(1)",
+    }
+    let buttonClass = isSuccessTime && isFishing ? "bg-amber-500" : ""
+    return (
+        <div className="">
+            <button
+                onClick={handleFishingSuccess}
+                style={buttonstyle}
+                className={buttonClass}
+                disabled={disable}
+            >
+                {label}
+            </button>
+        </div>
+    );
+};
+
+
 
 const QuestManager = () => {
     const [playerState, setPlayerState] = useState<PlayerState | null>(null);
@@ -47,7 +126,7 @@ const QuestManager = () => {
         if (state) {
             const now = Date.now();
             const from = new Date(state.start_at);
-            const elapsedSeconds =  Math.floor((now - from.getTime()) / 1000);
+            const elapsedSeconds = Math.floor((now - from.getTime()) / 1000);
             const updatedExperience = calculateExperience(state, elapsedSeconds);
             setPlayerState({ ...state, resources: { ...state.resources, experience: updatedExperience }, last_update: now });
         }
@@ -136,8 +215,13 @@ const QuestManager = () => {
 
     if (!playerState) return null;
 
-    const experienceToNextLevel = 1000;
+    const experienceToNextLevel = 100;
     const experienceProgress = (playerState.resources.experience % experienceToNextLevel) / experienceToNextLevel * 100;
+
+    const handleFishingSuccess = async () => {
+        await invoke('success_fish');
+        await fetchPlayerState();
+    }
 
     return (
         <div className="p-0  bg-gray-900 min-h-screen text-white">
@@ -146,6 +230,8 @@ const QuestManager = () => {
             <div className=" bg-black  p-4 h-20">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
+
+                    <FishingComp onFishSuccess={handleFishingSuccess}  />
                     <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
                 </div>
             </div>

@@ -82,7 +82,8 @@ pub fn run() {
             complete_quest,
             reorder_quests,
             update_quest,
-            upgrade_points_per_second
+            upgrade_points_per_second,
+            success_fish
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -138,6 +139,19 @@ async fn complete_quest(quest_id: String, state: State<'_, AppState>) -> Result<
 
         player.completed_quests.push(quest);
     }
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn success_fish( state: State<'_, AppState>) -> Result<(), String> {
+    let mut player = state
+        .player
+        .lock()
+        .map_err(|_| "Failed to lock player state")?;
+
+        // Add rewards
+        player.resources.gold += 10;
 
     Ok(())
 }
