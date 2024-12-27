@@ -54,6 +54,12 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
                         onDragOver={(e) => handleDragOver(e, quest)}
                         onDrop={(e) => handleDrop(e, quest)}
                         onDragEnd={handleDragEnd}
+                        onClick={(e) => {
+                            if (e.target instanceof HTMLButtonElement) {
+                                 return;
+                            }
+                            onEditQuest(quest)
+                        }}
                         className={`
                     p-4 py-1 rounded-xl
                     bg-gradient-to-r from-gray-800/80 to-gray-700/80
@@ -69,6 +75,7 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
                         <div className="flex items-center flex-1">
                             <div className="flex-1">
                                 <div className="flex items-center gap-4">
+                                    <span>  🐟</span>
                                     <h3 className="font-bold text-lg bg-gradient-to-r from-white to-gray-100 text-transparent bg-clip-text">
                                         {quest.title}
                                     </h3>
@@ -85,14 +92,6 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
                                 </span>
                             </div>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => onEditQuest(quest)}
-                                    className="px-3 py-1.5 bg-gradient-to-r from-amber-600/90 to-amber-500/90 
-                            text-white rounded-lg hover:from-amber-500/90 hover:to-amber-400/90 
-                            transition-all duration-300 shadow-lg shadow-amber-900/20 text-sm"
-                                >
-                                    Edit
-                                </button>
                                 <button
                                     onClick={() => onCompleteQuest(quest.id)}
                                     className="px-3 py-1.5 bg-gradient-to-r from-green-600/90 to-green-500/90 

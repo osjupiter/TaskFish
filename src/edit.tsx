@@ -71,7 +71,6 @@ const NewQuestForm: React.FC<NewQuestFormProps> = ({ showForm, onClose, onAddQue
                             value={newQuest.description}
                             onChange={(e) => setNewQuest({...newQuest, description: e.target.value})}
                             className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                            required
                         />
                     </div>
 
@@ -171,7 +170,6 @@ const EditQuestModal: React.FC<EditQuestModalProps> = ({showEditModal, onCloseEd
                                value={updatedQuest.description}
                                onChange={(e) => setUpdatedQuest({...updatedQuest, description: e.target.value})}
                                className="w-full bg-gray-700 rounded p-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
-                               required
                            />
                        </div>
 

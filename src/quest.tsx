@@ -136,7 +136,11 @@ const QuestManager = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [questToEdit, setQuestToEdit] = useState<Quest | null>(null);
     const [experienceCache, setExperienceCache] = useState<number | null>(null);
+    const [showCompleted, setShowCompleted] = useState(false);
     const [playDone] = useSound("/done.mp3", {
+        volume: 1
+    });
+    const [playUpgrade] = useSound("/upgrade.mp3", {
         volume: 1
     });
 
@@ -251,6 +255,7 @@ const QuestManager = () => {
 
     const handleUpgrade = async () => {
         if (!playerState) return
+        playUpgrade()
         try {
             await invoke('upgrade_points_per_second');
             await fetchPlayerState();
@@ -261,8 +266,6 @@ const QuestManager = () => {
     }
 
     if (!playerState) return null;
-
-    const experienceToNextLevel = 100;
 
     const expInfo = calculateLevelInfo(getCurrentExperience());
     const experienceProgress = (expInfo.currentLevelExperience) / expInfo.experienceToNextLevel * 100;
@@ -282,8 +285,32 @@ const QuestManager = () => {
             {/* Quest Actions と Form */}
             <div className="bg-black p-2 h-14 shadow-md z-10 relative">
                 <div className="flex justify-between items-center h-full">
-                    <h2 className="text-lg font-bold text-blue-400">🐟TaskFish</h2>
+                    <div className='flex gap-2'>
+                        <h2 className="text-lg font-bold text-blue-400">🐟TaskFish</h2>
+                        <button
+                            className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
+                        // onClick={() => handleCalendar()}  カレンダー未実装のためコメントアウト
+                        >
+                            Calendar
+                        </button>
+                        <button
+                            className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm"
+                        //  onClick={() => handleConfig()}  コンフィグ未実装のためコメントアウト
+                        >
+                            Config
+                        </button>
+                    </div>
+
                     <FishingComp onFishSuccess={handleFishingSuccess} />
+                    <button
+                        onClick={() => setShowCompleted(!showCompleted)}
+                        className={`
+                        px-2 py-1 rounded hover:bg-gray-700 transition-colors text-sm
+                        ${showCompleted ? 'bg-blue-500 text-white' : 'bg-gray-600 text-white'}
+                      `}
+                    >
+                        {showCompleted ? 'Hide Done' : 'Show Done'}
+                    </button>
                 </div>
             </div>
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
