@@ -27,7 +27,18 @@ const NewTaskForm: React.FC<NewTaskFormProps> = ({ onAddTask }) => {
                 value={newQuestTitle}
                 onChange={handleNewQuestTitleChange}
                 onKeyDown={handleAddQuestEnter}
-                className="bg-gray-700 text-white p-2 rounded w-full focus:outline-none focus:ring focus:ring-blue-500"
+                //className="bg-gray-700 text-white p-2 rounded w-full focus:outline-none focus:ring focus:ring-blue-500"
+                        className={`
+                        mx-4
+                        w-full
+                    p-4 py-1 
+                    bg-gradient-to-r from-gray-800/80 to-gray-700/80
+                    backdrop-blur-sm
+                    border border-gray-600/30
+                    hover:border-blue-500/50 hover:from-gray-800/90 hover:to-gray-700/90
+                    transition-all duration-300
+                    shadow-lg shadow-black/5
+                    `}
             />
         </div>
     );
