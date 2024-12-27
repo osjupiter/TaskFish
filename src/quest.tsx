@@ -22,13 +22,13 @@ const AddQuestButton: React.FC<AddQuestButtonProps> = ({ showForm, onToggleForm 
 };
 
 
-const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) => {
-    const [disable,setDisable] = useState(false);
+const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess }) => {
+    const [disable, setDisable] = useState(false);
     const [isFishing, setIsFishing] = useState(false);
     const [isSuccessTime, setIsSuccessTime] = useState(false);
-    const [ cancelSuccess, setCancelSuccess] = useState<number|null>(null);
-    const [ cancelFail,setCancelFail] = useState<number|null>(null);
-    const [ result,setResult] = useState<string|null>(null);
+    const [cancelSuccess, setCancelSuccess] = useState<number | null>(null);
+    const [cancelFail, setCancelFail] = useState<number | null>(null);
+    const [result, setResult] = useState<string | null>(null);
 
     // 釣り開始時の処理
     const handleStartFishing = () => {
@@ -38,7 +38,7 @@ const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) 
 
         const timeoutId = setTimeout(() => {
             setIsSuccessTime(true);
-            const failTimer=setTimeout(() => {
+            const failTimer = setTimeout(() => {
                 setResult("💩")
                 resetState();
             }, 500)
@@ -56,7 +56,7 @@ const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) 
         if (isSuccessTime) {
             onFishSuccess();
             setResult("💎")
-        } else{
+        } else {
             setResult("💩")
         }
         resetState();
@@ -64,8 +64,8 @@ const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) 
 
     const resetState = () => {
         setDisable(true)
-        if(cancelFail!==null)clearTimeout(cancelFail)
-        if(cancelSuccess!==null)clearTimeout(cancelSuccess)
+        if (cancelFail !== null) clearTimeout(cancelFail)
+        if (cancelSuccess !== null) clearTimeout(cancelSuccess)
         setIsSuccessTime(false);
         setTimeout(() => {
             setIsFishing(false);
@@ -79,7 +79,7 @@ const FishingComp: React.FC<{ onFishSuccess: () => void}> = ({ onFishSuccess }) 
     if (isFishing) {
         label = <span>🐟</span>
     }
-    if(result!==null){
+    if (result !== null) {
         label = <span>{result}</span>
     }
     let buttonstyle = {
@@ -227,19 +227,20 @@ const QuestManager = () => {
         <div className="p-0  bg-gray-900 min-h-screen text-white">
 
             {/* Quest Actions と Form */}
-            <div className=" bg-black  p-4 h-20">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-blue-400">Active Quests</h2>
+            <div className="bg-black p-2 h-14 shadow-md z-10 relative"> {/* h-20→h-14, p-4→p-2 */}
+                <div className="flex justify-between items-center h-full">
+                    <h2 className="text-lg font-bold text-blue-400">TaskFish</h2> {/* text-xl→text-lg */}
 
-                    <FishingComp onFishSuccess={handleFishingSuccess}  />
+                    <FishingComp onFishSuccess={handleFishingSuccess} />
                     <AddQuestButton showForm={showForm} onToggleForm={handleToggleForm} />
                 </div>
             </div>
+
             <NewQuestForm showForm={showForm} onClose={handleCloseForm} onAddQuest={handleAddQuest} />
             <EditQuestModal showEditModal={showEditModal} onCloseEditModal={handleCloseEditModal} onUpdateQuest={handleUpdateQuest} quest={questToEdit} />
             {/* Active Quests */}
 
-            <div className=' p-4 overflow-auto [height:calc(100vh-15rem)] overflow-y-auto'>
+            <div className="p-4 overflow-auto [height:calc(100vh-11.5rem)] overflow-y-auto bg-gradient-to-b from-gray-900 to-gray-700">
                 {playerState &&
                     <QuestList
                         activeQuests={playerState.active_quests}
@@ -249,40 +250,39 @@ const QuestManager = () => {
                     />}
             </div>
             {/* 既存のPlayer Stats部分 */}
-            <div className=" h-40 bottom-1 left-4 right-4 bg-black rounded-lg p-4 shadow-lg ">
-                <div className="mb-4">
-                    <h2 className="text-xl font-bold text-blue-400">Level {playerState.level} Adventurer</h2>
-                    <div className="mt-2">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm">Experience</span>
-                            <span className="text-sm">{Math.floor(experienceProgress)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2">
-                            <div
-                                className="bg-purple-500 rounded-full h-2 transition-all duration-300"
-                                style={{ width: `${experienceProgress}%` }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
-                        <div className="text-yellow-500">💰</div>
-                        <span>{playerState.resources.gold} Gold</span>
-                        {playerState.resources.gold >= 200 && (
-                            <button className='bg-amber-400 text-black px-2 py-1 text-sm rounded flex items-center space-x-2 hover:bg-gray-600' onClick={handleUpgrade}>
-                                <span>Upgrade🔨(Consume 200)</span>
-                            </button>
-                        )
-                        }
-                    </div>
-                    <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
-                        <div className="text-green-500">⚡</div>
-                        <span>{playerState.resources.experience.toFixed(1)} Exp( {playerState?.points_per_second.toFixed(1)} points/s )</span>
-                    </div>
-                </div>
+            <div className="h-32 bottom-1 left-4 right-4 bg-black rounded-lg p-3 shadow-lg"> {/* h-40→h-32, p-4→p-3 */}
+    <div className="flex justify-between items-start gap-4 mb-3">
+        <h2 className="text-lg font-bold text-blue-400">Level {playerState.level} Adventurer</h2>
+        <div className="flex-1 max-w-md">
+            <div className="flex justify-between items-center mb-1">
+                <span className="text-sm">Experience</span>
+                <span className="text-sm">{Math.floor(experienceProgress)}%</span>
             </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                    className="bg-purple-500 rounded-full h-2 transition-all duration-300"
+                    style={{ width: `${experienceProgress}%` }}
+                />
+            </div>
+        </div>
+    </div>
+
+    <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
+            <div className="text-yellow-500">💰</div>
+            <span>{playerState.resources.gold} Gold</span>
+            {playerState.resources.gold >= 200 && (
+                <button onClick={handleUpgrade} className='bg-amber-400 text-black px-2 py-0.5 text-sm rounded flex items-center space-x-2 hover:bg-gray-600'>
+                    <span>Upgrade🔨(Consume 200)</span>
+                </button>
+            )}
+        </div>
+        <div className="flex items-center gap-2 bg-gray-700 p-2 rounded">
+            <div className="text-green-500">⚡</div>
+            <span>{playerState.resources.experience.toFixed(1)} Exp( {playerState?.points_per_second.toFixed(1)} points/s )</span>
+        </div>
+    </div>
+</div>
         </div>
     );
 };
