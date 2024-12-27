@@ -22,7 +22,6 @@ const createLevelData = () => {
 const levelData = createLevelData();
 
 const calculateLevelInfo = (experience: number): { level: number; experienceToNextLevel: number; currentLevelExperience: number } => {
-    let level = 1;
     let currentLevelExperience = experience;
 
     for (let i = 0; i < levelData.length; i++) {
@@ -31,7 +30,6 @@ const calculateLevelInfo = (experience: number): { level: number; experienceToNe
             return { level: currentLevel, experienceToNextLevel, currentLevelExperience };
         }
         currentLevelExperience -= experienceToNextLevel;
-        level = currentLevel + 1;
     }
     return { level: 100, experienceToNextLevel: 0, currentLevelExperience: 0 };
 };
@@ -41,7 +39,7 @@ const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess })
     const [disable, setDisable] = useState(false);
     const [isFishing, setIsFishing] = useState(false);
     const [isSuccessTime, setIsSuccessTime] = useState(false);
-    const [cancelSuccess, setCancelSuccess] = useState<number | null>(null);
+    const [cancelSuccess,setCancelSuccess ] = useState<number | null>(null);
     const [cancelFail, setCancelFail] = useState<number | null>(null);
     const [result, setResult] = useState<string | null>(null);
     const [playFish] = useSound("/fish.mp3", {
@@ -71,7 +69,7 @@ const FishingComp: React.FC<{ onFishSuccess: () => void }> = ({ onFishSuccess })
             }, 500)
             setCancelFail(failTimer)
         }, successStartTime);
-        setCancelFail(timeoutId)
+        setCancelSuccess(timeoutId)
     };
 
     // 釣りの成功/失敗判定
@@ -317,14 +315,16 @@ const QuestManager = () => {
             {/* Active Quests */}
             <ScrollableContainer>
                 {playerState &&
-                    <div className="p-4  bg-gradient-to-b from-gray-900 to-gray-700" style={{ minHeight: 'calc(100vh - 15rem)' }}>
-                        <QuestList
-                            activeQuests={playerState.active_quests}
-                            onCompleteQuest={handleCompleteQuest}
-                            onEditQuest={handleEditQuest}
-                            onReorderQuests={handleReorderQuests}
-                        />
-                    </div>
+   <div className="p-4  bg-gradient-to-b from-gray-900 to-gray-700" style={{ minHeight: 'calc(100vh - 15rem)' }}>
+   <QuestList
+      activeQuests={playerState.active_quests}
+       completedQuests={playerState.completed_quests}
+        showCompleted={showCompleted}
+       onCompleteQuest={handleCompleteQuest}
+       onEditQuest={handleEditQuest}
+       onReorderQuests={handleReorderQuests}
+   />
+</div>
                 }
             </ScrollableContainer>
 

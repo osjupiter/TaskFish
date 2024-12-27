@@ -1,14 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Quest } from './types'; // types.ts からインポート
 
 interface QuestListProps {
     activeQuests: Quest[];
+    completedQuests?: Quest[];
+    showCompleted: boolean;
     onCompleteQuest: (questId: string) => void;
     onEditQuest: (quest: Quest) => void;
     onReorderQuests: (updatedQuests: Quest[]) => void;
 }
 
-const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, onEditQuest, onReorderQuests }) => {
+const QuestList: React.FC<QuestListProps> = ({ activeQuests, completedQuests = [], showCompleted, onCompleteQuest, onEditQuest, onReorderQuests }) => {
     const [draggedItem, setDraggedItem] = useState<Quest | null>(null);
     const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
 
@@ -17,7 +19,7 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
         event.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDragOver = (event: React.DragEvent<HTMLElement>, quest: Quest) => {
+    const handleDragOver = (_: React.DragEvent<HTMLElement>, quest: Quest) => {
         if (!draggedItem || draggedItem.id === quest.id) return;
         setDragOverItemId(quest.id);
         console.log('drag over');
@@ -41,25 +43,27 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
     };
 
 
-    const handleDrop = (event: React.DragEvent<HTMLElement>, dropQuest: Quest) => {
-    };
+
+    const combinedQuests = showCompleted ? [...activeQuests, ...completedQuests] : [...activeQuests];
 
     return (
-        <div className="space-y-2"> {/* space-y-6から3に変更してアイテム間の余白を減らす */}
-            {activeQuests.map((quest, index) => (
+        <div className="space-y-2">
+            {combinedQuests.map((quest) => (
                 <React.Fragment key={quest.id}>
                     <div
-                        draggable={true}
-                        onDragStart={(e) => handleDragStart(e, quest)}
-                        onDragOver={(e) => handleDragOver(e, quest)}
-                        onDrop={(e) => handleDrop(e, quest)}
-                        onDragEnd={handleDragEnd}
+                        draggable={!quest.completed}
+                          // === 変更箇所：過去クエストはクリックできないようにする ===
                         onClick={(e) => {
+                            if (quest.completed) return;
                             if (e.target instanceof HTMLButtonElement) {
-                                 return;
+                                return;
                             }
                             onEditQuest(quest)
                         }}
+                           // === 変更箇所終了 ===
+                        onDragStart={(e) => !quest.completed && handleDragStart(e, quest)}
+                        onDragOver={(e) => !quest.completed && handleDragOver(e, quest)}
+                        onDragEnd={!quest.completed ? handleDragEnd:undefined}
                         className={`
                     p-4 py-1 rounded-xl
                     bg-gradient-to-r from-gray-800/80 to-gray-700/80
@@ -69,7 +73,8 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
                     transition-all duration-300
                     flex items-center justify-between
                     shadow-lg shadow-black/5
-                    ${draggedItem?.id === quest.id ? 'border-2 border-red-500/50' : ''}
+                     ${draggedItem?.id === quest.id ? 'border-2 border-red-500/50' : ''}
+                   ${quest.completed ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
                 `}
                     >
                         <div className="flex items-center flex-1">
@@ -92,14 +97,21 @@ const QuestList: React.FC<QuestListProps> = ({ activeQuests, onCompleteQuest, on
                                 </span>
                             </div>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => onCompleteQuest(quest.id)}
-                                    className="px-3 py-1.5 bg-gradient-to-r from-green-600/90 to-green-500/90 
+                                 {/* === 変更箇所：過去クエストはボタンを表示しない === */}
+                                {!quest.completed && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // イベント伝播を停止
+                                            onCompleteQuest(quest.id)
+                                        }}
+                                        className="px-3 py-1.5 bg-gradient-to-r from-green-600/90 to-green-500/90 
                             text-white rounded-lg hover:from-green-500/90 hover:to-green-400/90 
                             transition-all duration-300 shadow-lg shadow-green-900/20 text-sm"
-                                >
-                                    Done
-                                </button>
+                                    >
+                                        Done
+                                    </button>
+                                )}
+                                   {/* === 変更箇所終了 === */}
                             </div>
                         </div>
                     </div>
